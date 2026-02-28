@@ -68,6 +68,7 @@ func Run(t *testing.T, args []string, opts ...Option) (stdout, stderr string) {
 	for _, opt := range opts {
 		opt(cfg)
 	}
+	fmt.P("args",args)
 
 	// Respect explicit per-test override; otherwise derive a safe default.
 	runTimeout := resolveRunTimeout(t, cfg.timeout)
@@ -123,6 +124,7 @@ func Run(t *testing.T, args []string, opts ...Option) (stdout, stderr string) {
 
 	// Always show both stdout and stderr in error messages
 	outputMsg := fmt.Sprintf("stdout: %q\nstderr: %q", stdoutBuf.String(), stderrBuf.String())
+	fmt.P("actualCode",actualCode,"cfg.expectedCode",cfg.expectedCode)
 	require.Equal(t, cfg.expectedCode, actualCode,
 		"neva execution exit code mismatch. %s", outputMsg)
 
@@ -169,16 +171,15 @@ func FindRepoRoot(t *testing.T) string {
 	t.Helper()
 
 	// #nosec G204 -- command arguments are constant
-	cmd := exec.Command("go", "env", "GOMOD")
+	cmd := exec.Command("go", "env", "GOPATH")
 	output, err := cmd.Output()
-	require.NoError(t, err, "failed to run 'go env GOMOD'")
+	require.NoError(t, err, "failed to run 'go env GOPATH'")
 
 	gomodPath := strings.TrimSpace(string(output))
-	require.NotEmpty(t, gomodPath, "GOMOD path is empty")
+	require.NotEmpty(t, gomodPath, "GOPATH path is empty")
 
-	repoRoot := filepath.Dir(gomodPath)
+	repoRoot := filepath.Join(gomodPath,"src/github.com/nevalang/neva")
 	require.NotEmpty(t, repoRoot, "repo root is empty")
-
 	return repoRoot
 }
 
@@ -207,6 +208,7 @@ func buildNevaBinary(t *testing.T, repoRoot, mainPath string) string {
 	t.Helper()
 
 	binPath := filepath.Join(t.TempDir(), "neva")
+	fmt.P("binPath",binPath,"mainPath",mainPath)
 	buildCmd := exec.Command("go", "build", "-o", binPath, mainPath)
 	buildCmd.Dir = repoRoot
 

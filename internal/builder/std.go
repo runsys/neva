@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	nevaos "github.com/nevalang/neva/pkg/os"
 	std "github.com/nevalang/neva/std"
@@ -13,12 +15,9 @@ import (
 
 // ensureStdlib ensures the standard library is properly extracted and up-to-date
 func ensureStdlib() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("get home directory: %w", err)
-	}
+	nevahome:=FindRepoRoot()
 
-	path := filepath.Join(home, "neva", "std")
+	path := filepath.Join(nevahome, "std")
 
 	// Compute checksum of the embedded stdlib
 	embeddedChecksum, err := nevaos.ComputeChecksumForFS(std.FS)
@@ -104,4 +103,15 @@ func writeChecksum(stdlibPath, checksum string) error {
 	checksumPath := filepath.Join(stdlibPath, ".checksum")
 	// #nosec G306 -- checksum is a non-sensitive build artifact
 	return os.WriteFile(checksumPath, []byte(checksum), 0644)
+}
+
+func FindRepoRoot() string {
+	cmd := exec.Command("go", "env", "GOPATH")
+	output, err := cmd.Output()
+	if err!=nil {
+		panic(err)
+	}
+	gomodPath := strings.TrimSpace(string(output))
+	repoRoot := filepath.Join(gomodPath,"src/github.com/nevalang/neva")
+	return repoRoot
 }
